@@ -35,12 +35,14 @@ impl Game {
     fn add_snake_head(&mut self) {
         let (snake_head_x, snake_head_y) = self.snake.last().unwrap();
 
-        match self.direction {
-            Direction::Right => self.snake.push((snake_head_x + 1, *snake_head_y)),
-            Direction::Left => self.snake.push((snake_head_x - 1, *snake_head_y)),
-            Direction::Up => self.snake.push((*snake_head_x, snake_head_y - 1)),
-            Direction::Down => self.snake.push((*snake_head_x, snake_head_y + 1)),
+        let new_head_location = match self.direction {
+            Direction::Right => (snake_head_x + 1, *snake_head_y),
+            Direction::Left => (snake_head_x - 1, *snake_head_y),
+            Direction::Up => (*snake_head_x, snake_head_y - 1),
+            Direction::Down => (*snake_head_x, snake_head_y + 1),
         };
+
+        self.snake.push(new_head_location);
     }
 
     fn remove_snake_tail(&mut self) {
@@ -53,6 +55,10 @@ impl Game {
 
     pub fn get_snake(&self) -> &Snake {
         &self.snake
+    }
+
+    pub fn set_snake_direction(&mut self, direction: Direction) {
+        self.direction = direction;
     }
 }
 

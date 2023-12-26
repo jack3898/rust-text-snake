@@ -32,17 +32,14 @@ impl Canvas {
         buf
     }
 
-    pub fn set_coord(&mut self, x: usize, y: usize, new_char: char) {
-        self.matrix.get_mut(y).and_then(|row| {
-            row.get_mut(x).and_then(|value| {
+    pub fn set_coord(&mut self, x: usize, y: usize, new_char: char) -> bool {
+        self.matrix.get_mut(y).is_some_and(|row| {
+            row.get_mut(x).is_some_and(|value| {
                 *value = new_char;
-                Some(())
-            })
-        });
-    }
 
-    pub fn get_matrix(&self) -> &Vec<Vec<char>> {
-        &self.matrix
+                true
+            })
+        })
     }
 
     pub fn reset(&mut self) {
