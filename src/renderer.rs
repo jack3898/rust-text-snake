@@ -1,18 +1,16 @@
-use std::{process::Command, sync::Arc};
+use std::process::Command;
 
 use crate::canvas::Canvas;
 
-pub struct Renderer {
-    canvas: Arc<std::sync::Mutex<Canvas>>,
-}
+pub struct Renderer {}
 
 impl Renderer {
-    pub fn new(canvas: Arc<std::sync::Mutex<Canvas>>) -> Self {
-        Self { canvas }
+    pub fn new() -> Self {
+        Self {}
     }
 
-    pub fn render(&self) {
-        let buf = self.canvas.lock().unwrap().to_buffer();
+    pub fn render(&self, canvas: &Canvas) {
+        let buf = canvas.to_buffer();
 
         println!("{buf}");
     }

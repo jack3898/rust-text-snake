@@ -1,35 +1,59 @@
 mod canvas;
+mod characters;
+mod game;
 mod renderer;
 
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::time::Duration;
 
 use canvas::Canvas;
+use characters::Characters;
+use game::Game;
 use renderer::Renderer;
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() {
-    let canvas = Arc::new(Mutex::new(Canvas::new(15, 15, '🟩')));
-    let renderer = Renderer::new(Arc::clone(&canvas));
+    let (sender, mut receiver) = mpsc::channel(1);
 
     let render_task = tokio::spawn(async move {
+        let renderer = Renderer::new();
+
         loop {
+            let canvas: Canvas = receiver.recv().await.unwrap();
+
             renderer.clear();
-            renderer.render();
-            thread::sleep(Duration::from_millis(500));
+            renderer.render(&canvas);
         }
     });
 
-    for i in 0..10 {
-        for j in 0..10 {
-            canvas.lock().unwrap().update_coord(i, j, '🟨');
+    let sender_instance = mpsc::Sender::clone(&sender);
 
-            thread::sleep(Duration::from_millis(300));
+    let game_loop = tokio::spawn(async move {
+        let mut game = Game::new();
+
+        loop {
+            game.next();
+
+            let mut canvas = Canvas::new(15, 15, Characters::Grass);
+            let snake = game.get_snake();
+
+            canvas.reset();
+
+            for (snake_x, snake_y) in snake {
+                canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
+            }
+
+            canvas.set_coord(
+                snake.last().unwrap().0,
+                snake.last().unwrap().1,
+                Characters::SnakeHead.value(),
+            );
+
+            sender_instance.send(canvas).await.unwrap();
+
+            tokio::time::sleep(Duration::from_millis(500)).await;
         }
-    }
+    });
 
-    let _ = render_task.await;
+    let _ = tokio::join!(render_task, game_loop);
 }
