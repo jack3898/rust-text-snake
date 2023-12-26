@@ -42,6 +42,10 @@ impl Canvas {
         })
     }
 
+    pub fn add_row(&mut self, row: Vec<char>) {
+        self.matrix.push(row);
+    }
+
     pub fn reset(&mut self) {
         self.matrix = vec![vec![self.backdrop_char.value(); self.y_res]; self.x_res];
     }

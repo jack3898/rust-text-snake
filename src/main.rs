@@ -15,10 +15,12 @@ use game::{Direction, Game};
 use renderer::Renderer;
 use tokio::sync::mpsc;
 
+const SIZE: usize = 25;
+
 #[tokio::main]
 async fn main() {
     let (canvas_sender, mut canvas_receiver) = mpsc::channel(1);
-    let game = Arc::new(Mutex::new(Game::new()));
+    let game = Arc::new(Mutex::new(Game::new(SIZE, SIZE)));
 
     let render_task = tokio::spawn(async move {
         let renderer = Renderer::new();
@@ -36,16 +38,20 @@ async fn main() {
 
     let game_loop = tokio::spawn(async move {
         loop {
-            let mut canvas = Canvas::new(15, 15, Characters::Grass);
+            let mut canvas = Canvas::new(SIZE, SIZE, Characters::Grass);
 
             {
                 let mut game = game_loop_game.lock().unwrap();
 
                 game.next();
 
+                let apple = game.get_apple();
                 let snake = game.get_snake();
 
                 canvas.reset();
+
+                let score: Vec<char> = format!("Score: {}", game.get_score()).chars().collect();
+                canvas.add_row(score);
 
                 for (snake_x, snake_y) in snake {
                     canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
@@ -56,11 +62,15 @@ async fn main() {
                     snake.last().unwrap().1,
                     Characters::SnakeHead.value(),
                 );
+
+                if let Some(apple) = apple {
+                    canvas.set_coord(apple.0, apple.1, Characters::Apple.value());
+                };
             }
 
             sender_instance.send(canvas).await.unwrap();
 
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            tokio::time::sleep(Duration::from_millis(150)).await;
         }
     });
 
@@ -76,7 +86,7 @@ async fn main() {
                     KeyCode::Left => game.set_snake_direction(Direction::Left),
                     KeyCode::Down => game.set_snake_direction(Direction::Down),
                     KeyCode::Right => game.set_snake_direction(Direction::Right),
-                    KeyCode::Char('r') => game.eat_apple(),
+                    KeyCode::Char('r') => game.add_apple(),
                     _ => (),
                 }
             }
