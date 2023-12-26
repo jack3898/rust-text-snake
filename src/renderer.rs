@@ -1,35 +1,18 @@
-use std::process::Command;
+use std::{process::Command, sync::Arc};
+
+use crate::canvas::Canvas;
 
 pub struct Renderer {
-    matrix: Vec<Vec<char>>,
+    canvas: Arc<std::sync::Mutex<Canvas>>,
 }
 
 impl Renderer {
-    pub fn new(x_res: usize, y_res: usize) -> Self {
-        Self {
-            matrix: vec![vec!['0'; y_res]; x_res],
-        }
-    }
-
-    pub fn buffer(&self) -> String {
-        let mut buf = String::new();
-
-        for row in &self.matrix {
-            buf.push('|');
-
-            for val in row {
-                buf.push(*val);
-            }
-
-            buf.push('|');
-            buf.push('\n');
-        }
-
-        buf
+    pub fn new(canvas: Arc<std::sync::Mutex<Canvas>>) -> Self {
+        Self { canvas }
     }
 
     pub fn render(&self) {
-        let buf = self.buffer();
+        let buf = self.canvas.lock().unwrap().to_buffer();
 
         println!("{buf}");
     }
@@ -40,18 +23,5 @@ impl Renderer {
         } else {
             Command::new("clear").status().unwrap();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Renderer;
-
-    #[test]
-    fn should_create_correct_buffer() {
-        let renderer = Renderer::new(3, 3);
-        let buf = renderer.buffer();
-
-        assert_eq!(buf, "\0\0\0\n\0\0\0\n\0\0\0\n")
     }
 }
