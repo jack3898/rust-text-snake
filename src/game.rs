@@ -1,5 +1,7 @@
 use rand::Rng;
 
+use crate::game_state::GameState;
+
 pub enum Direction {
     Up,
     Down,
@@ -18,6 +20,7 @@ pub struct Game {
     playfield_x: usize,
     playfield_y: usize,
     direction: Direction,
+    state: GameState,
 }
 
 impl Game {
@@ -31,17 +34,32 @@ impl Game {
             playfield_x: playfield_x,
             playfield_y: playfield_y,
             direction: Direction::Right,
+            state: GameState::Playing,
             score: 0,
         }
     }
 
-    pub fn next(&mut self) {
+    pub fn next(&mut self) -> &GameState {
+        if let GameState::GameOver { .. } = self.state {
+            return &self.state;
+        }
+
         if !self.add_snake_head() {
-            panic!("Out of bounds!");
+            self.state = GameState::GameOver {
+                score: self.score,
+                message: "You hit a wall!\nPress 'r' to restart.".to_string(),
+            };
+
+            return &self.state;
         }
 
         if self.snake_eating_itself() {
-            panic!("Will handle this better another time. But game over!");
+            self.state = GameState::GameOver {
+                score: self.score,
+                message: "You ate yourself! Press 'r' to restart.".to_string(),
+            };
+
+            return &self.state;
         }
 
         if self.apple.is_some() {
@@ -54,9 +72,13 @@ impl Game {
         } else {
             self.add_apple();
         }
+
+        self.state = GameState::Playing;
+
+        return &self.state;
     }
 
-    pub fn add_apple(&mut self) {
+    fn add_apple(&mut self) {
         if self.apple.is_none() {
             self.apple = Some((
                 rand::thread_rng().gen_range(0..self.playfield_x),
@@ -93,7 +115,7 @@ impl Game {
         self.snake.remove(0);
     }
 
-    pub fn snake_eating_itself(&self) -> bool {
+    fn snake_eating_itself(&self) -> bool {
         let snake_body_coords = &self.get_snake()[..self.snake.len() - 1];
 
         snake_body_coords.iter().any(|body_part_coords| {
@@ -103,7 +125,7 @@ impl Game {
         })
     }
 
-    pub fn snake_eating_apple(&self) -> bool {
+    fn snake_eating_apple(&self) -> bool {
         let snake_head_coords = self.get_snake().last().unwrap();
         let apple_coords_opt = self.get_apple();
 
@@ -132,6 +154,19 @@ impl Game {
 
     pub fn set_snake_direction(&mut self, direction: Direction) {
         self.direction = direction;
+    }
+
+    pub fn start_over(&mut self) {
+        self.snake = vec![(0, 0)];
+        self.score = 0;
+        self.direction = Direction::Right;
+        self.state = GameState::Playing;
+
+        self.add_apple();
+    }
+
+    pub fn get_state(&self) -> &GameState {
+        &self.state
     }
 }
 

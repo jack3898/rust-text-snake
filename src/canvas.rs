@@ -3,19 +3,23 @@ use crate::characters::Characters;
 #[derive(Clone)]
 pub struct Canvas {
     matrix: Vec<Vec<char>>,
-    backdrop_char: Characters,
     x_res: usize,
     y_res: usize,
 }
 
 impl Canvas {
-    pub fn new(x_res: usize, y_res: usize, backdrop_char: Characters) -> Self {
+    pub fn new() -> Self {
         Self {
-            matrix: vec![vec![backdrop_char.value(); y_res]; x_res],
-            backdrop_char,
-            x_res,
-            y_res,
+            matrix: vec![],
+            x_res: 0,
+            y_res: 0,
         }
+    }
+
+    pub fn fill(&mut self, char: char, x_res: usize, y_res: usize) {
+        self.matrix = vec![vec![char; y_res]; x_res];
+        self.x_res = x_res;
+        self.y_res = y_res;
     }
 
     pub fn to_buffer(&self) -> String {
@@ -44,10 +48,11 @@ impl Canvas {
 
     pub fn add_row(&mut self, row: Vec<char>) {
         self.matrix.push(row);
+        self.y_res += 1;
     }
 
-    pub fn reset(&mut self) {
-        self.matrix = vec![vec![self.backdrop_char.value(); self.y_res]; self.x_res];
+    pub fn reset(&mut self) -> Self {
+        Self::new()
     }
 }
 
@@ -56,17 +61,4 @@ mod tests {
     use crate::characters::Characters;
 
     use super::Canvas;
-
-    #[test]
-    fn should_create_correct_buffer() {
-        let canvas = Canvas::new(3, 3, Characters::Grass);
-        let buf = canvas.to_buffer();
-
-        let grs = Characters::Grass.value();
-
-        assert_eq!(
-            buf,
-            format!("{grs}{grs}{grs}\n{grs}{grs}{grs}\n{grs}{grs}{grs}\n")
-        )
-    }
 }

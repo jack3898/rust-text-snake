@@ -1,6 +1,7 @@
 mod canvas;
 mod characters;
 mod game;
+mod game_state;
 mod renderer;
 
 use std::{
@@ -12,10 +13,11 @@ use canvas::Canvas;
 use characters::Characters;
 use crossterm::event::{read, Event, KeyCode};
 use game::{Direction, Game};
+use game_state::GameState;
 use renderer::Renderer;
 use tokio::sync::mpsc;
 
-const SIZE: usize = 25;
+const SIZE: usize = 15;
 
 #[tokio::main]
 async fn main() {
@@ -38,35 +40,51 @@ async fn main() {
 
     let game_loop = tokio::spawn(async move {
         loop {
-            let mut canvas = Canvas::new(SIZE, SIZE, Characters::Grass);
-
-            {
+            let canvas = {
                 let mut game = game_loop_game.lock().unwrap();
+                let game_state = game.next();
 
-                game.next();
+                match game_state {
+                    GameState::Playing => {
+                        let mut canvas = Canvas::new();
+                        let apple = game.get_apple();
+                        let snake = game.get_snake();
 
-                let apple = game.get_apple();
-                let snake = game.get_snake();
+                        canvas.fill(Characters::Grass.value(), SIZE, SIZE);
 
-                canvas.reset();
+                        let score: Vec<char> =
+                            format!("Score: {}", game.get_score()).chars().collect();
+                        canvas.add_row(score);
 
-                let score: Vec<char> = format!("Score: {}", game.get_score()).chars().collect();
-                canvas.add_row(score);
+                        for (snake_x, snake_y) in snake {
+                            canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
+                        }
 
-                for (snake_x, snake_y) in snake {
-                    canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
+                        canvas.set_coord(
+                            snake.last().unwrap().0,
+                            snake.last().unwrap().1,
+                            Characters::SnakeHead.value(),
+                        );
+
+                        if let Some(apple) = apple {
+                            canvas.set_coord(apple.0, apple.1, Characters::Apple.value());
+                        };
+
+                        canvas
+                    }
+                    GameState::GameOver { score, message } => {
+                        let mut canvas = Canvas::new();
+
+                        let message: Vec<char> = message.chars().collect();
+                        canvas.add_row(message);
+
+                        let score: Vec<char> = format!("Final score: {}", score).chars().collect();
+                        canvas.add_row(score);
+
+                        canvas
+                    }
                 }
-
-                canvas.set_coord(
-                    snake.last().unwrap().0,
-                    snake.last().unwrap().1,
-                    Characters::SnakeHead.value(),
-                );
-
-                if let Some(apple) = apple {
-                    canvas.set_coord(apple.0, apple.1, Characters::Apple.value());
-                };
-            }
+            };
 
             sender_instance.send(canvas).await.unwrap();
 
@@ -81,30 +99,39 @@ async fn main() {
             if let Ok(Event::Key(key_event)) = read() {
                 let mut game = input_handler_game.lock().unwrap();
 
-                // The matches! statements are used to stop people from accidentally eating the snake
-                match key_event.code {
-                    KeyCode::Up => {
-                        if !matches!(game.get_direction(), Direction::Down) {
-                            game.set_snake_direction(Direction::Up)
+                match game.get_state() {
+                    GameState::Playing => {
+                        // The matches! statements are used to stop people from accidentally eating the snake
+                        match key_event.code {
+                            KeyCode::Up => {
+                                if !matches!(game.get_direction(), Direction::Down) {
+                                    game.set_snake_direction(Direction::Up)
+                                }
+                            }
+                            KeyCode::Left => {
+                                if !matches!(game.get_direction(), Direction::Right) {
+                                    game.set_snake_direction(Direction::Left)
+                                }
+                            }
+                            KeyCode::Down => {
+                                if !matches!(game.get_direction(), Direction::Up) {
+                                    game.set_snake_direction(Direction::Down)
+                                }
+                            }
+                            KeyCode::Right => {
+                                if !matches!(game.get_direction(), Direction::Left) {
+                                    game.set_snake_direction(Direction::Right)
+                                }
+                            }
+                            _ => (),
                         }
                     }
-                    KeyCode::Left => {
-                        if !matches!(game.get_direction(), Direction::Right) {
-                            game.set_snake_direction(Direction::Left)
+                    GameState::GameOver { .. } => match key_event.code {
+                        KeyCode::Char('r') => {
+                            game.start_over();
                         }
-                    }
-                    KeyCode::Down => {
-                        if !matches!(game.get_direction(), Direction::Up) {
-                            game.set_snake_direction(Direction::Down)
-                        }
-                    }
-                    KeyCode::Right => {
-                        if !matches!(game.get_direction(), Direction::Left) {
-                            game.set_snake_direction(Direction::Right)
-                        }
-                    }
-                    KeyCode::Char('r') => game.add_apple(),
-                    _ => (),
+                        _ => (),
+                    },
                 }
             }
         }
