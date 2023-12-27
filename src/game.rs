@@ -109,6 +109,10 @@ impl Game {
         self.score
     }
 
+    pub fn get_direction(&self) -> &Direction {
+        &self.direction
+    }
+
     pub fn set_snake_direction(&mut self, direction: Direction) {
         self.direction = direction;
     }

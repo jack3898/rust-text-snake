@@ -9,9 +9,9 @@ pub enum Characters {
 impl Characters {
     pub fn value(&self) -> char {
         match self {
-            Characters::SnakeHead => '❎',
+            Characters::SnakeHead => '👀',
             Characters::SnakeBody => '🟩',
-            Characters::Grass => '🟫',
+            Characters::Grass => '➕',
             Characters::Apple => '🍎',
         }
     }

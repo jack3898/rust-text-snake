@@ -81,11 +81,28 @@ async fn main() {
             if let Ok(Event::Key(key_event)) = read() {
                 let mut game = input_handler_game.lock().unwrap();
 
+                // The matches! statements are used to stop people from accidentally eating the snake
                 match key_event.code {
-                    KeyCode::Up => game.set_snake_direction(Direction::Up),
-                    KeyCode::Left => game.set_snake_direction(Direction::Left),
-                    KeyCode::Down => game.set_snake_direction(Direction::Down),
-                    KeyCode::Right => game.set_snake_direction(Direction::Right),
+                    KeyCode::Up => {
+                        if !matches!(game.get_direction(), Direction::Down) {
+                            game.set_snake_direction(Direction::Up)
+                        }
+                    }
+                    KeyCode::Left => {
+                        if !matches!(game.get_direction(), Direction::Right) {
+                            game.set_snake_direction(Direction::Left)
+                        }
+                    }
+                    KeyCode::Down => {
+                        if !matches!(game.get_direction(), Direction::Up) {
+                            game.set_snake_direction(Direction::Down)
+                        }
+                    }
+                    KeyCode::Right => {
+                        if !matches!(game.get_direction(), Direction::Left) {
+                            game.set_snake_direction(Direction::Right)
+                        }
+                    }
                     KeyCode::Char('r') => game.add_apple(),
                     _ => (),
                 }
