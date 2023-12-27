@@ -37,6 +37,10 @@ impl Game {
     pub fn next(&mut self) {
         self.add_snake_head();
 
+        if self.is_game_over() {
+            panic!("Will handle this better another time. But game over!");
+        }
+
         if self.apple.is_some() {
             self.remove_snake_tail()
         }
@@ -75,6 +79,18 @@ impl Game {
         };
 
         self.snake.push(new_head_location);
+    }
+
+    pub fn is_game_over(&self) -> bool {
+        let snake_body = self.get_snake()[..self.snake.len() - 1].to_vec();
+
+        let snake_eat_itself = snake_body.into_iter().any(|(snake_part_x, snake_part_y)| {
+            let head = self.snake.last().unwrap();
+
+            head.0 == snake_part_x && head.1 == snake_part_y
+        });
+
+        return snake_eat_itself;
     }
 
     fn remove_snake_tail(&mut self) {
