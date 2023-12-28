@@ -1,5 +1,3 @@
-use crate::characters::Characters;
-
 #[derive(Clone)]
 pub struct Canvas {
     matrix: Vec<Vec<char>>,
@@ -50,15 +48,4 @@ impl Canvas {
         self.matrix.push(row);
         self.y_res += 1;
     }
-
-    pub fn reset(&mut self) -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::characters::Characters;
-
-    use super::Canvas;
 }

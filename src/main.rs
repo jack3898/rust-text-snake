@@ -18,6 +18,7 @@ use renderer::Renderer;
 use tokio::sync::mpsc;
 
 const SIZE: usize = 15;
+const FRAME_TIME_MILLI: u64 = 150;
 
 #[tokio::main]
 async fn main() {
@@ -39,6 +40,8 @@ async fn main() {
     let game_loop_game = Arc::clone(&game);
 
     let game_loop = tokio::spawn(async move {
+        let mut speed = FRAME_TIME_MILLI;
+
         loop {
             let canvas = {
                 let mut game = game_loop_game.lock().unwrap();
@@ -56,6 +59,10 @@ async fn main() {
                             format!("Score: {}", game.get_score()).chars().collect();
                         canvas.add_row(score);
 
+                        let speed_display: Vec<char> =
+                            format!("Speed: {}", (10000 / speed) - 66).chars().collect();
+                        canvas.add_row(speed_display);
+
                         for (snake_x, snake_y) in snake {
                             canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
                         }
@@ -68,6 +75,12 @@ async fn main() {
 
                         if let Some(apple) = apple {
                             canvas.set_coord(apple.0, apple.1, Characters::Apple.value());
+                        };
+
+                        speed = if speed > 30 {
+                            FRAME_TIME_MILLI - game.get_score() as u64
+                        } else {
+                            speed
                         };
 
                         canvas
@@ -83,12 +96,20 @@ async fn main() {
 
                         canvas
                     }
+                    GameState::Paused => {
+                        let mut canvas = Canvas::new();
+
+                        let message: Vec<char> = "Paused. Press 'r' to resume.".chars().collect();
+                        canvas.add_row(message);
+
+                        canvas
+                    }
                 }
             };
 
             sender_instance.send(canvas).await.unwrap();
 
-            tokio::time::sleep(Duration::from_millis(150)).await;
+            tokio::time::sleep(Duration::from_millis(speed)).await;
         }
     });
 
@@ -123,12 +144,21 @@ async fn main() {
                                     game.set_snake_direction(Direction::Right)
                                 }
                             }
+                            KeyCode::Esc => {
+                                game.pause();
+                            }
                             _ => (),
                         }
                     }
                     GameState::GameOver { .. } => match key_event.code {
                         KeyCode::Char('r') => {
                             game.start_over();
+                        }
+                        _ => (),
+                    },
+                    GameState::Paused => match key_event.code {
+                        KeyCode::Char('r') => {
+                            game.resume();
                         }
                         _ => (),
                     },

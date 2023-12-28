@@ -2,6 +2,7 @@ use rand::Rng;
 
 use crate::game_state::GameState;
 
+#[derive(PartialEq, Copy, Clone)]
 pub enum Direction {
     Up,
     Down,
@@ -14,12 +15,13 @@ type Snake = Vec<XYCoord>;
 type Apple = Option<XYCoord>;
 
 pub struct Game {
-    snake: Snake, // A list of the snakes parts using x/y coords
+    snake: Snake,
     apple: Apple,
     score: usize,
     playfield_x: usize,
     playfield_y: usize,
-    direction: Direction,
+    current_direction: Direction, // Only updates next game tick
+    next_direction: Direction,    // Queues up for next game tick
     state: GameState,
 }
 
@@ -33,16 +35,26 @@ impl Game {
             )),
             playfield_x: playfield_x,
             playfield_y: playfield_y,
-            direction: Direction::Right,
+            current_direction: Direction::Right,
+            next_direction: Direction::Right,
             state: GameState::Playing,
             score: 0,
         }
     }
 
     pub fn next(&mut self) -> &GameState {
-        if let GameState::GameOver { .. } = self.state {
-            return &self.state;
+        match self.state {
+            GameState::Playing => {
+                self.next_playing();
+                self.get_state()
+            }
+            GameState::Paused => self.get_state(),
+            GameState::GameOver { .. } => self.get_state(),
         }
+    }
+
+    fn next_playing(&mut self) -> &GameState {
+        self.current_direction = self.next_direction;
 
         if !self.add_snake_head() {
             self.state = GameState::GameOver {
@@ -75,7 +87,7 @@ impl Game {
 
         self.state = GameState::Playing;
 
-        return &self.state;
+        &self.state
     }
 
     fn add_apple(&mut self) {
@@ -90,7 +102,7 @@ impl Game {
     fn add_snake_head(&mut self) -> bool {
         let (snake_head_x, snake_head_y) = self.snake.last().unwrap();
 
-        let new_head_location = match self.direction {
+        let new_head_location = match self.current_direction {
             Direction::Right if *snake_head_x < self.playfield_x - 1 => {
                 Some((snake_head_x + 1, *snake_head_y))
             }
@@ -149,17 +161,18 @@ impl Game {
     }
 
     pub fn get_direction(&self) -> &Direction {
-        &self.direction
+        &self.current_direction
     }
 
     pub fn set_snake_direction(&mut self, direction: Direction) {
-        self.direction = direction;
+        self.next_direction = direction;
     }
 
     pub fn start_over(&mut self) {
         self.snake = vec![(0, 0)];
         self.score = 0;
-        self.direction = Direction::Right;
+        self.current_direction = Direction::Right;
+        self.next_direction = Direction::Right;
         self.state = GameState::Playing;
 
         self.add_apple();
@@ -167,6 +180,14 @@ impl Game {
 
     pub fn get_state(&self) -> &GameState {
         &self.state
+    }
+
+    pub fn pause(&mut self) {
+        self.state = GameState::Paused;
+    }
+
+    pub fn resume(&mut self) {
+        self.state = GameState::Playing;
     }
 }
 
@@ -194,7 +215,7 @@ mod tests {
 
         let snake = game.get_snake().last();
 
-        assert_eq!(matches!(game.direction, Direction::Right), true);
+        assert_eq!(matches!(game.current_direction, Direction::Right), true);
         assert_eq!(matches!(snake, Some(&(3, 0))), true);
     }
 
@@ -211,7 +232,7 @@ mod tests {
 
         let snake = game.get_snake();
 
-        assert_eq!(matches!(game.direction, Direction::Right), true);
+        assert_eq!(matches!(game.current_direction, Direction::Right), true);
         assert_eq!(snake, &vec![(2, 0), (3, 0)]);
         assert_eq!(snake.len(), 2);
     }
