@@ -14,8 +14,8 @@ pub enum SnakeDirection {
 pub enum SnakeError {
     #[error("Snake hit a wall!")]
     HitWall,
-    #[error("Snake hit itself!")]
-    HitSelf,
+    #[error("No head found for the snake.")]
+    NoHead,
 }
 
 pub trait Snake {
@@ -53,7 +53,7 @@ pub trait Snake {
     fn snake_add_head(&mut self, max_x: usize, max_y: usize) -> Result<(), SnakeError> {
         let snake_direction = self.snake_get_direction().clone();
         let (snake_head_x, snake_head_y) =
-            self.snake_get_head().ok_or(SnakeError::HitSelf)?.as_tuple();
+            self.snake_get_head().ok_or(SnakeError::NoHead)?.as_tuple();
         let snake = self.get_snake();
 
         let new_head_location = match snake_direction {

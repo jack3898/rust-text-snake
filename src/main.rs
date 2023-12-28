@@ -13,6 +13,7 @@ use canvas::Canvas;
 use characters::Characters;
 use crossterm::event::{read, Event, KeyCode};
 use game::{
+    apple::Apple,
     game::Game,
     game_state::GameState,
     snake::{Snake, SnakeDirection},

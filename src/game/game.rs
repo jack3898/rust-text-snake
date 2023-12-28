@@ -3,6 +3,7 @@ use rand::Rng;
 use crate::coordinate::Coordinate;
 
 use super::{
+    apple::Apple,
     game_state::GameState,
     snake::{Snake, SnakeDirection},
 };
@@ -78,7 +79,7 @@ impl Game {
             self.apple = None;
             self.score += 1;
         } else {
-            self.add_apple();
+            self.add_apple(self.playfield_x, self.playfield_y);
         }
 
         self.state = GameState::Playing;
@@ -86,31 +87,14 @@ impl Game {
         &self.state
     }
 
-    fn add_apple(&mut self) {
-        if self.apple.is_none() {
-            self.apple = Some(Coordinate::new(
-                rand::thread_rng().gen_range(0..self.playfield_x),
-                rand::thread_rng().gen_range(0..self.playfield_y),
-            ))
-        }
-    }
-
     fn snake_eating_apple(&mut self) -> bool {
-        if let Some(apple) = self.get_apple() {
-            let snake_head = self.snake_get_head();
-
-            if let Some(snake_head) = snake_head {
-                snake_head.intersects(&apple)
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    pub fn get_apple(&self) -> Option<Coordinate> {
-        self.apple
+        self.get_apple()
+            .map(|apple| {
+                self.snake_get_head()
+                    .map(|head| head.intersects(&apple))
+                    .unwrap_or(false)
+            })
+            .unwrap_or(false)
     }
 
     pub fn get_score(&self) -> usize {
@@ -124,7 +108,7 @@ impl Game {
         self.next_direction = SnakeDirection::Right;
         self.state = GameState::Playing;
 
-        self.add_apple();
+        self.add_apple(self.playfield_x, self.playfield_y);
     }
 
     pub fn get_state(&self) -> &GameState {
@@ -151,5 +135,15 @@ impl Snake for Game {
 
     fn snake_set_direction(&mut self, direction: SnakeDirection) {
         self.next_direction = direction;
+    }
+}
+
+impl Apple for Game {
+    fn get_apple(&self) -> Option<Coordinate> {
+        self.apple
+    }
+
+    fn set_apple(&mut self, apple: Option<Coordinate>) {
+        self.apple = apple;
     }
 }
