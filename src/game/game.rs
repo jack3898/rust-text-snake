@@ -146,4 +146,8 @@ impl Apple for Game {
     fn set_apple(&mut self, apple: Option<Coordinate>) {
         self.apple = apple;
     }
+
+    fn get_apple_no_go_zones(&self) -> &Vec<Coordinate> {
+        &self.snake
+    }
 }
