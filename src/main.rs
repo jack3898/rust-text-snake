@@ -1,7 +1,7 @@
 mod canvas;
 mod characters;
+mod coordinate;
 mod game;
-mod game_state;
 mod renderer;
 
 use std::{
@@ -12,8 +12,11 @@ use std::{
 use canvas::Canvas;
 use characters::Characters;
 use crossterm::event::{read, Event, KeyCode};
-use game::{Direction, Game};
-use game_state::GameState;
+use game::{
+    game::Game,
+    game_state::GameState,
+    snake::{Snake, SnakeDirection},
+};
 use renderer::Renderer;
 use tokio::sync::mpsc;
 
@@ -50,35 +53,32 @@ async fn main() {
                 match game_state {
                     GameState::Playing => {
                         let mut canvas = Canvas::new();
+                        let score = game.get_score();
                         let apple = game.get_apple();
-                        let snake = game.get_snake();
+                        let snake_body = game.snake_get_body();
+                        let snake_head = game.snake_get_head().unwrap();
 
                         canvas.fill(Characters::Grass.value(), SIZE, SIZE);
 
-                        let score: Vec<char> =
-                            format!("Score: {}", game.get_score()).chars().collect();
-                        canvas.add_row(score);
+                        let score_render: Vec<char> = format!("Score: {}", score).chars().collect();
+                        canvas.add_row(score_render);
 
                         let speed_display: Vec<char> =
                             format!("Speed: {}", (10000 / speed) - 66).chars().collect();
                         canvas.add_row(speed_display);
 
-                        for (snake_x, snake_y) in snake {
-                            canvas.set_coord(*snake_x, *snake_y, Characters::SnakeBody.value());
+                        for coordinate in snake_body {
+                            canvas.set_coord(&coordinate, Characters::SnakeBody.value());
                         }
 
-                        canvas.set_coord(
-                            snake.last().unwrap().0,
-                            snake.last().unwrap().1,
-                            Characters::SnakeHead.value(),
-                        );
+                        canvas.set_coord(&snake_head, Characters::SnakeHead.value());
 
                         if let Some(apple) = apple {
-                            canvas.set_coord(apple.0, apple.1, Characters::Apple.value());
+                            canvas.set_coord(&apple, Characters::Apple.value());
                         };
 
                         speed = if speed > 30 {
-                            FRAME_TIME_MILLI - game.get_score() as u64
+                            FRAME_TIME_MILLI - score as u64
                         } else {
                             speed
                         };
@@ -125,23 +125,23 @@ async fn main() {
                         // The matches! statements are used to stop people from accidentally eating the snake
                         match key_event.code {
                             KeyCode::Up => {
-                                if !matches!(game.get_direction(), Direction::Down) {
-                                    game.set_snake_direction(Direction::Up)
+                                if !matches!(game.snake_get_direction(), SnakeDirection::Down) {
+                                    game.snake_set_direction(SnakeDirection::Up)
                                 }
                             }
                             KeyCode::Left => {
-                                if !matches!(game.get_direction(), Direction::Right) {
-                                    game.set_snake_direction(Direction::Left)
+                                if !matches!(game.snake_get_direction(), SnakeDirection::Right) {
+                                    game.snake_set_direction(SnakeDirection::Left)
                                 }
                             }
                             KeyCode::Down => {
-                                if !matches!(game.get_direction(), Direction::Up) {
-                                    game.set_snake_direction(Direction::Down)
+                                if !matches!(game.snake_get_direction(), SnakeDirection::Up) {
+                                    game.snake_set_direction(SnakeDirection::Down)
                                 }
                             }
                             KeyCode::Right => {
-                                if !matches!(game.get_direction(), Direction::Left) {
-                                    game.set_snake_direction(Direction::Right)
+                                if !matches!(game.snake_get_direction(), SnakeDirection::Left) {
+                                    game.snake_set_direction(SnakeDirection::Right)
                                 }
                             }
                             KeyCode::Esc => {
