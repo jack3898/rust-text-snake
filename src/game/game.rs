@@ -1,7 +1,8 @@
-use crate::coordinate::Coordinate;
+use std::collections::HashMap;
+
+use crate::coordinates::Coordinates;
 
 use super::{
-    entity_manager::EntityManager,
     entity_type::EntityType,
     game_state::GameState,
     powerup::PowerupType,
@@ -12,13 +13,13 @@ use super::{
 };
 
 pub struct Game {
-    entity_manager: EntityManager<EntityType>,
-    snake: Vec<Coordinate>,
+    entities: HashMap<Coordinates, EntityType>,
+    snake: Vec<Coordinates>,
     score: usize,
     playfield_x: usize,
     playfield_y: usize,
     current_direction: SnakeDirection, // Only updates next game tick
-    next_direction: SnakeDirection,    // Queues up for next game tick
+    next_direction: Vec<SnakeDirection>, // Queues up for next game tick
     state: GameState,
     current_powerup: PowerupType,
 }
@@ -26,13 +27,13 @@ pub struct Game {
 impl Game {
     pub fn new(playfield_x: usize, playfield_y: usize) -> Self {
         Self {
-            entity_manager: EntityManager::new(),
-            snake: vec![Coordinate::new(0, 0)],
+            entities: HashMap::new(),
+            snake: Vec::from([Coordinates::new(0, 0)]),
             score: 0,
             playfield_x: playfield_x,
             playfield_y: playfield_y,
             current_direction: SnakeDirection::Right,
-            next_direction: SnakeDirection::Right,
+            next_direction: Vec::from([SnakeDirection::Right]),
             state: GameState::Intro,
             current_powerup: PowerupType::None,
         }
@@ -44,14 +45,17 @@ impl Game {
                 self.process_next_game_tick();
                 self.get_state()
             }
-            GameState::Paused => self.get_state(),
             GameState::GameOver { .. } => self.get_state(),
             GameState::Intro => self.get_state(),
         }
     }
 
     fn process_next_game_tick(&mut self) -> &GameState {
-        self.current_direction = self.next_direction;
+        if self.next_direction.len() > 0 {
+            let removed = self.next_direction.remove(0);
+
+            self.current_direction = removed;
+        }
 
         match self.snake_add_head(self.playfield_x, self.playfield_y) {
             Ok(_) => {}
@@ -84,13 +88,10 @@ impl Game {
     }
 
     fn get_apple(&self) -> Option<&EntityType> {
-        self.entity_manager
-            .entities
-            .iter()
-            .find_map(|(_, entity)| match entity {
-                EntityType::Apple { .. } => Some(entity),
-                _ => None,
-            })
+        self.entities.iter().find_map(|(_, entity)| match entity {
+            EntityType::Apple { .. } => Some(entity),
+            _ => None,
+        })
     }
 
     /// Identify if the snake is on a powerup and award it to the player on a match
@@ -98,11 +99,11 @@ impl Game {
         match self.snake_on_entity() {
             Some(EntityType::Supersnake { coordinates, .. }) => {
                 // Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
-                self.entity_manager.remove_entity(&coordinates.unwrap());
+                self.entities.remove(&coordinates.unwrap());
                 self.current_powerup = PowerupType::Supersnake { duration: 100 };
             }
             Some(EntityType::Apple { coordinates, .. }) => {
-                self.entity_manager.remove_entity(&coordinates.unwrap());
+                self.entities.remove(&coordinates.unwrap());
                 self.score += 1;
             }
             None => {
@@ -139,7 +140,7 @@ impl Game {
         for entity in new_entities {
             let coordinates = &entity.get_coordinates().unwrap().clone();
 
-            self.entity_manager.add_entity(coordinates, entity);
+            self.entities.insert(*coordinates, entity);
         }
     }
 
@@ -161,7 +162,7 @@ impl Game {
     fn snake_on_entity(&self) -> Option<&EntityType> {
         let snake_head_coords = self.snake_get_head().expect("Snake has no head!");
 
-        self.entity_manager.get_entity(*snake_head_coords)
+        self.entities.get(snake_head_coords)
     }
 
     pub fn get_current_powerup(&self) -> &PowerupType {
@@ -180,21 +181,17 @@ impl Game {
         &self.state
     }
 
-    pub fn pause(&mut self) {
-        self.state = GameState::Paused;
-    }
-
-    pub fn resume(&mut self) {
+    pub fn play(&mut self) {
         self.state = GameState::Playing;
     }
 }
 
 impl Snake for Game {
-    fn get_snake(&self) -> &Vec<Coordinate> {
+    fn get_snake(&self) -> &Vec<Coordinates> {
         &self.snake
     }
 
-    fn get_snake_mut(&mut self) -> &mut Vec<Coordinate> {
+    fn get_snake_mut(&mut self) -> &mut Vec<Coordinates> {
         &mut self.snake
     }
 
@@ -203,14 +200,13 @@ impl Snake for Game {
     }
 
     fn snake_set_direction(&mut self, direction: SnakeDirection) {
-        self.next_direction = direction;
+        self.next_direction.push(direction);
     }
 }
 
 impl Entity for Game {
     fn get_all_entities(&self) -> Vec<&EntityType> {
-        self.entity_manager
-            .entities
+        self.entities
             .iter()
             .filter_map(|(_, entity)| match entity {
                 EntityType::Apple { .. } => Some(entity),
@@ -222,10 +218,10 @@ impl Entity for Game {
     fn remove_entity(&mut self) {
         let snake_head_coords = self.snake_get_head().unwrap().clone();
 
-        self.entity_manager.remove_entity(&snake_head_coords);
+        self.entities.remove(&snake_head_coords);
     }
 
-    fn get_entity_no_go_zones(&self) -> &Vec<Coordinate> {
+    fn get_entity_no_go_zones(&self) -> &Vec<Coordinates> {
         &self.snake
     }
 }

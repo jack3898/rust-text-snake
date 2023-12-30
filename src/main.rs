@@ -1,6 +1,6 @@
 mod canvas;
 mod characters;
-mod coordinate;
+mod coordinates;
 mod game;
 mod renderer;
 
@@ -11,7 +11,7 @@ use std::{
 
 use canvas::Canvas;
 use characters::Characters;
-use crossterm::event::{read, Event, KeyCode};
+use crossterm::event::{read, Event, KeyCode, KeyEventKind};
 use game::{
     entity_type::EntityType,
     game::Game,
@@ -25,8 +25,8 @@ use game::{
 use renderer::Renderer;
 use tokio::sync::mpsc;
 
-const SIZE: usize = 15;
-const FRAME_TIME_MILLI: u64 = 150;
+const SIZE: usize = 20;
+const FRAME_TIME_MILLI: u64 = 250;
 
 #[tokio::main]
 async fn main() {
@@ -113,7 +113,7 @@ async fn main() {
                         }
 
                         if speed > 60 {
-                            speed = FRAME_TIME_MILLI - score as u64
+                            speed = FRAME_TIME_MILLI - (score * 2) as u64
                         };
 
                         canvas
@@ -132,7 +132,6 @@ async fn main() {
                             snake_display.as_str(),
                             "Press [SPACE] to start.",
                             "Use the arrow keys to move.",
-                            "Press [ESC] to pause and [R] to resume.",
                             "You can quit at any time by pressing [ESC] in this screen.",
                         ];
 
@@ -154,14 +153,6 @@ async fn main() {
 
                         canvas
                     }
-                    GameState::Paused => {
-                        let mut canvas = Canvas::new();
-
-                        let message: Vec<char> = "Paused. Press [R] to resume.".chars().collect();
-                        canvas.add_row(message);
-
-                        canvas
-                    }
                 }
             };
 
@@ -174,44 +165,39 @@ async fn main() {
     let input_handler_game = Arc::clone(&game);
 
     let input_handler = tokio::spawn(async move {
+        let mut last_key = KeyCode::Null;
+
         loop {
             if let Ok(Event::Key(key_event)) = read() {
                 let mut game = input_handler_game.lock().unwrap();
+
+                // This thread polls very quickly, so we need to make sure we don't poll the same key twice
+                match key_event.kind {
+                    KeyEventKind::Press if (key_event.code == last_key) => continue,
+                    KeyEventKind::Press => last_key = key_event.code,
+                    KeyEventKind::Repeat => continue,
+                    KeyEventKind::Release => {
+                        last_key = KeyCode::Null;
+
+                        continue;
+                    }
+                }
 
                 match game.get_state() {
                     GameState::Playing => {
                         // The matches! statements are used to stop people from accidentally eating the snake
                         match key_event.code {
-                            KeyCode::Up => {
-                                if !matches!(game.snake_get_direction(), SnakeDirection::Down) {
-                                    game.snake_set_direction(SnakeDirection::Up)
-                                }
-                            }
-                            KeyCode::Left => {
-                                if !matches!(game.snake_get_direction(), SnakeDirection::Right) {
-                                    game.snake_set_direction(SnakeDirection::Left)
-                                }
-                            }
-                            KeyCode::Down => {
-                                if !matches!(game.snake_get_direction(), SnakeDirection::Up) {
-                                    game.snake_set_direction(SnakeDirection::Down)
-                                }
-                            }
-                            KeyCode::Right => {
-                                if !matches!(game.snake_get_direction(), SnakeDirection::Left) {
-                                    game.snake_set_direction(SnakeDirection::Right)
-                                }
-                            }
-                            KeyCode::Esc => {
-                                game.pause();
-                            }
+                            KeyCode::Up => game.snake_set_direction(SnakeDirection::Up),
+                            KeyCode::Left => game.snake_set_direction(SnakeDirection::Left),
+                            KeyCode::Down => game.snake_set_direction(SnakeDirection::Down),
+                            KeyCode::Right => game.snake_set_direction(SnakeDirection::Right),
+
                             _ => (),
                         }
                     }
                     GameState::Intro => match key_event.code {
                         KeyCode::Char(' ') => {
-                            game.start_over();
-                            game.resume();
+                            game.play();
                         }
                         KeyCode::Esc => {
                             println!("Thanks for playing!");
@@ -222,12 +208,6 @@ async fn main() {
                     GameState::GameOver { .. } => match key_event.code {
                         KeyCode::Char('r') => {
                             game.start_over();
-                        }
-                        _ => (),
-                    },
-                    GameState::Paused => match key_event.code {
-                        KeyCode::Char('r') => {
-                            game.resume();
                         }
                         _ => (),
                     },

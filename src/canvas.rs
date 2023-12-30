@@ -1,4 +1,4 @@
-use crate::coordinate::Coordinate;
+use crate::coordinates::Coordinates;
 
 #[derive(Clone)]
 pub struct Canvas {
@@ -36,7 +36,7 @@ impl Canvas {
         buf
     }
 
-    pub fn set_coord(&mut self, coordinate: &Coordinate, new_char: char) -> bool {
+    pub fn set_coord(&mut self, coordinate: &Coordinates, new_char: char) -> bool {
         let (x, y) = coordinate.as_tuple();
 
         self.matrix.get_mut(y).is_some_and(|row| {

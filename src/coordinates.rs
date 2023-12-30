@@ -1,12 +1,12 @@
 use rand::Rng;
 
 #[derive(Clone, Copy, PartialEq, Hash, Eq)]
-pub struct Coordinate {
+pub struct Coordinates {
     pub x: usize,
     pub y: usize,
 }
 
-impl Coordinate {
+impl Coordinates {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
@@ -23,12 +23,12 @@ impl Coordinate {
     }
 
     /// Returns true if the coordinate intersects with the other coordinate
-    pub fn intersects(&self, other: &Coordinate) -> bool {
+    pub fn intersects(&self, other: &Coordinates) -> bool {
         self.x == other.x && self.y == other.y
     }
 
     /// Returns true if the coordinate intersects with any of the coordinates in the vector
-    pub fn intersects_multiple(&self, others: &[Coordinate]) -> bool {
+    pub fn intersects_multiple(&self, others: &[Coordinates]) -> bool {
         for other in others {
             if self.intersects(other) {
                 return true;

@@ -1,4 +1,3 @@
-mod entity_manager;
 pub mod entity_type;
 pub mod game;
 pub mod game_state;

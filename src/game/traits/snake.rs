@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::coordinate::Coordinate;
+use crate::coordinates::Coordinates;
 
 #[derive(PartialEq, Copy, Clone)]
 pub enum SnakeDirection {
@@ -19,15 +19,15 @@ pub enum SnakeError {
 }
 
 pub trait Snake {
-    fn get_snake(&self) -> &Vec<Coordinate>;
+    fn get_snake(&self) -> &Vec<Coordinates>;
 
-    fn get_snake_mut(&mut self) -> &mut Vec<Coordinate>;
+    fn get_snake_mut(&mut self) -> &mut Vec<Coordinates>;
 
-    fn snake_get_head(&self) -> Option<&Coordinate> {
+    fn snake_get_head(&self) -> Option<&Coordinates> {
         self.get_snake().last()
     }
 
-    fn snake_get_body(&self) -> Vec<Coordinate> {
+    fn snake_get_body(&self) -> Vec<Coordinates> {
         let snake = self.get_snake();
 
         if snake.len() == 0 {
@@ -60,16 +60,16 @@ pub trait Snake {
 
         let new_head_location = match snake_direction {
             SnakeDirection::Right if snake_head_x < max_x - 1 => {
-                Some(Coordinate::new(snake_head_x + 1, snake_head_y))
+                Some(Coordinates::new(snake_head_x + 1, snake_head_y))
             }
             SnakeDirection::Left if snake_head_x > 0 => {
-                Some(Coordinate::new(snake_head_x - 1, snake_head_y))
+                Some(Coordinates::new(snake_head_x - 1, snake_head_y))
             }
             SnakeDirection::Up if snake_head_y > 0 => {
-                Some(Coordinate::new(snake_head_x, snake_head_y - 1))
+                Some(Coordinates::new(snake_head_x, snake_head_y - 1))
             }
             SnakeDirection::Down if snake_head_y < max_y - 1 => {
-                Some(Coordinate::new(snake_head_x, snake_head_y + 1))
+                Some(Coordinates::new(snake_head_x, snake_head_y + 1))
             }
             _ => None,
         };
