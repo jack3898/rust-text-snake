@@ -87,11 +87,14 @@ impl Game {
         &self.state
     }
 
-    fn get_apple(&self) -> Option<&EntityType> {
-        self.entities.iter().find_map(|(_, entity)| match entity {
-            EntityType::Apple { .. } => Some(entity),
-            _ => None,
-        })
+    fn get_apples(&self) -> Vec<&EntityType> {
+        self.entities
+            .iter()
+            .filter_map(|(_, entity)| match entity {
+                EntityType::Apple { .. } => Some(entity),
+                _ => None,
+            })
+            .collect()
     }
 
     /// Identify if the snake is on a powerup and award it to the player on a match
@@ -150,7 +153,7 @@ impl Game {
             self.score += 1;
         };
 
-        if self.get_apple().is_none() {
+        if self.get_apples().len() < 3 {
             self.add_entity(
                 |coords| {
                     new_entities.push(EntityType::new_apple(coords));
