@@ -3,6 +3,7 @@ pub enum Characters {
     SnakeHead,
     SnakeBody,
     SnakeBodySuper,
+    Obstacle,
     Grass,
     Apple,
     Supersnake,
@@ -14,8 +15,9 @@ impl Characters {
             Characters::SnakeHead => '👀',
             Characters::SnakeBody => '🟩',
             Characters::SnakeBodySuper => '🟦',
+            Characters::Obstacle => '🟥',
             Characters::Grass => '➕',
-            Characters::Apple => '🍎',
+            Characters::Apple => '🍏',
             Characters::Supersnake => '🐍',
         }
     }

@@ -106,7 +106,15 @@ impl Game {
                 self.entities.remove(&coordinates.unwrap());
                 self.score += 1;
             }
-            None => {
+            Some(EntityType::Obstacle { .. })
+                if !matches!(self.current_powerup, PowerupType::Supersnake { .. }) =>
+            {
+                self.state = GameState::GameOver {
+                    score: self.score,
+                    message: "You hit an obstacle! Press [R] to restart.".to_string(),
+                };
+            }
+            _ => {
                 self.snake_remove_tail();
             }
         };
@@ -136,6 +144,37 @@ impl Game {
                 self.playfield_y,
             );
         };
+
+        let obstacle_coords = Vec::from([
+            // Top left
+            Coordinates::new(5, 5),
+            Coordinates::new(5, 6),
+            Coordinates::new(5, 7),
+            Coordinates::new(6, 5),
+            Coordinates::new(7, 5),
+            // Top right
+            Coordinates::new(self.playfield_x - 6, 5),
+            Coordinates::new(self.playfield_x - 6, 6),
+            Coordinates::new(self.playfield_x - 6, 7),
+            Coordinates::new(self.playfield_x - 7, 5),
+            Coordinates::new(self.playfield_x - 8, 5),
+            // Bottom left
+            Coordinates::new(5, self.playfield_y - 6),
+            Coordinates::new(5, self.playfield_y - 7),
+            Coordinates::new(5, self.playfield_y - 8),
+            Coordinates::new(6, self.playfield_y - 6),
+            Coordinates::new(7, self.playfield_y - 6),
+            // Bottom right
+            Coordinates::new(self.playfield_x - 6, self.playfield_y - 6),
+            Coordinates::new(self.playfield_x - 6, self.playfield_y - 7),
+            Coordinates::new(self.playfield_x - 6, self.playfield_y - 8),
+            Coordinates::new(self.playfield_x - 7, self.playfield_y - 6),
+            Coordinates::new(self.playfield_x - 8, self.playfield_y - 6),
+        ]);
+
+        for obstacle in obstacle_coords {
+            new_entities.push(EntityType::new_obstacle(obstacle));
+        }
 
         for entity in new_entities {
             let coordinates = &entity.get_coordinates().unwrap().clone();
@@ -211,6 +250,7 @@ impl Entity for Game {
             .filter_map(|(_, entity)| match entity {
                 EntityType::Apple { .. } => Some(entity),
                 EntityType::Supersnake { .. } => Some(entity),
+                EntityType::Obstacle { .. } => Some(entity),
             })
             .collect()
     }
@@ -221,7 +261,12 @@ impl Entity for Game {
         self.entities.remove(&snake_head_coords);
     }
 
-    fn get_entity_no_go_zones(&self) -> &Vec<Coordinates> {
-        &self.snake
+    fn get_entity_no_go_zones(&self) -> Vec<Coordinates> {
+        let mut vec: Vec<Coordinates> = Vec::new();
+
+        vec.extend(&self.snake);
+        vec.extend(self.entities.keys());
+
+        vec
     }
 }

@@ -25,7 +25,7 @@ use game::{
 use renderer::Renderer;
 use tokio::sync::mpsc;
 
-const SIZE: usize = 20;
+const SIZE: usize = 21;
 const FRAME_TIME_MILLI: u64 = 250;
 
 #[tokio::main]
@@ -83,18 +83,6 @@ async fn main() {
 
                         canvas.add_row(powerup_display);
 
-                        for coordinate in snake_body {
-                            match game.get_current_powerup() {
-                                PowerupType::Supersnake { .. } => canvas
-                                    .set_coord(&coordinate, Characters::SnakeBodySuper.value()),
-                                PowerupType::None => {
-                                    canvas.set_coord(&coordinate, Characters::SnakeBody.value())
-                                }
-                            };
-                        }
-
-                        canvas.set_coord(&snake_head, Characters::SnakeHead.value());
-
                         for entity in game.get_all_entities() {
                             match entity {
                                 EntityType::Supersnake { .. } => {
@@ -109,8 +97,26 @@ async fn main() {
                                         Characters::Apple.value(),
                                     );
                                 }
+                                EntityType::Obstacle { .. } => {
+                                    canvas.set_coord(
+                                        entity.get_coordinates().unwrap(),
+                                        Characters::Obstacle.value(),
+                                    );
+                                }
                             };
                         }
+
+                        for coordinate in snake_body {
+                            match game.get_current_powerup() {
+                                PowerupType::Supersnake { .. } => canvas
+                                    .set_coord(&coordinate, Characters::SnakeBodySuper.value()),
+                                PowerupType::None => {
+                                    canvas.set_coord(&coordinate, Characters::SnakeBody.value())
+                                }
+                            };
+                        }
+
+                        canvas.set_coord(&snake_head, Characters::SnakeHead.value());
 
                         if speed > 60 {
                             speed = FRAME_TIME_MILLI - (score * 2) as u64
