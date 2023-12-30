@@ -5,7 +5,7 @@ pub enum EntityType {
         coordinates: Option<Coordinates>,
         emoji: char,
     },
-    Supersnake {
+    SupersnakePwrup {
         coordinates: Option<Coordinates>,
         emoji: char,
     },
@@ -24,7 +24,7 @@ impl EntityType {
     }
 
     pub fn new_supersnake(coordinates: Coordinates) -> Self {
-        Self::Supersnake {
+        Self::SupersnakePwrup {
             coordinates: Some(coordinates),
             emoji: Characters::Supersnake.value(),
         }
@@ -40,7 +40,7 @@ impl EntityType {
     pub fn get_coordinates(&self) -> Option<&Coordinates> {
         match self {
             Self::Apple { coordinates, .. } => coordinates.as_ref(),
-            Self::Supersnake { coordinates, .. } => coordinates.as_ref(),
+            Self::SupersnakePwrup { coordinates, .. } => coordinates.as_ref(),
             Self::Obstacle { coordinates, .. } => coordinates.as_ref(),
         }
     }

@@ -97,7 +97,7 @@ impl Game {
     /// Identify if the snake is on a powerup and award it to the player on a match
     fn handle_eat_entity(&mut self) {
         match self.snake_on_entity() {
-            Some(EntityType::Supersnake { coordinates, .. }) => {
+            Some(EntityType::SupersnakePwrup { coordinates, .. }) => {
                 // Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
                 self.entities.remove(&coordinates.unwrap());
                 self.current_powerup = PowerupType::Supersnake { duration: 100 };
@@ -249,7 +249,7 @@ impl Entity for Game {
             .iter()
             .filter_map(|(_, entity)| match entity {
                 EntityType::Apple { .. } => Some(entity),
-                EntityType::Supersnake { .. } => Some(entity),
+                EntityType::SupersnakePwrup { .. } => Some(entity),
                 EntityType::Obstacle { .. } => Some(entity),
             })
             .collect()

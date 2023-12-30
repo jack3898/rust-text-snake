@@ -85,7 +85,7 @@ async fn main() {
 
                         for entity in game.get_all_entities() {
                             match entity {
-                                EntityType::Supersnake { .. } => {
+                                EntityType::SupersnakePwrup { .. } => {
                                     canvas.set_coord(
                                         entity.get_coordinates().unwrap(),
                                         Characters::Supersnake.value(),
