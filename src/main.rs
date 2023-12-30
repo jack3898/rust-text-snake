@@ -16,7 +16,9 @@ use game::{
     apple::Apple,
     game::Game,
     game_state::GameState,
+    powerup::PowerupType,
     snake::{Snake, SnakeDirection},
+    supersnake::Supersnake,
 };
 use renderer::Renderer;
 use tokio::sync::mpsc;
@@ -56,6 +58,7 @@ async fn main() {
                         let mut canvas = Canvas::new();
                         let score = game.get_score();
                         let apple = game.get_apple();
+                        let supersnake = game.get_supersnake();
                         let snake_body = game.snake_get_body();
                         let snake_head = game.snake_get_head().unwrap();
 
@@ -68,14 +71,36 @@ async fn main() {
                             format!("Speed: {}", (10000 / speed) - 66).chars().collect();
                         canvas.add_row(speed_display);
 
+                        let powerup_display: Vec<char> = format!(
+                            "Powerup ticks: {}",
+                            match game.get_powerup() {
+                                PowerupType::Supersnake { duration } => duration.to_string(),
+                                PowerupType::None => "No powerup active".to_string(),
+                            }
+                        )
+                        .chars()
+                        .collect();
+
+                        canvas.add_row(powerup_display);
+
                         for coordinate in snake_body {
-                            canvas.set_coord(&coordinate, Characters::SnakeBody.value());
+                            match game.get_powerup() {
+                                PowerupType::Supersnake { .. } => canvas
+                                    .set_coord(&coordinate, Characters::SnakeBodySuper.value()),
+                                PowerupType::None => {
+                                    canvas.set_coord(&coordinate, Characters::SnakeBody.value())
+                                }
+                            };
                         }
 
                         canvas.set_coord(&snake_head, Characters::SnakeHead.value());
 
                         if let Some(apple) = apple {
                             canvas.set_coord(&apple, Characters::Apple.value());
+                        };
+
+                        if let Some(supersnake) = supersnake {
+                            canvas.set_coord(&supersnake, Characters::Supersnake.value());
                         };
 
                         speed = if speed > 30 {

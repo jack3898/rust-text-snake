@@ -1,3 +1,5 @@
+use rand::Rng;
+
 #[derive(Clone, Copy, PartialEq)]
 pub struct Coordinate {
     pub x: usize,
@@ -7,6 +9,13 @@ pub struct Coordinate {
 impl Coordinate {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
+    }
+
+    pub fn new_random(max_x: usize, max_y: usize) -> Self {
+        Self {
+            x: rand::thread_rng().gen_range(0..max_x),
+            y: rand::thread_rng().gen_range(0..max_y),
+        }
     }
 
     pub fn as_tuple(&self) -> (usize, usize) {

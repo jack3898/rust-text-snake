@@ -19,13 +19,15 @@ pub enum SnakeError {
 }
 
 pub trait Snake {
-    fn get_snake(&mut self) -> &mut Vec<Coordinate>;
+    fn get_snake(&self) -> &Vec<Coordinate>;
 
-    fn snake_get_head(&mut self) -> Option<&Coordinate> {
+    fn get_snake_mut(&mut self) -> &mut Vec<Coordinate>;
+
+    fn snake_get_head(&self) -> Option<&Coordinate> {
         self.get_snake().last()
     }
 
-    fn snake_get_body(&mut self) -> Vec<Coordinate> {
+    fn snake_get_body(&self) -> Vec<Coordinate> {
         let snake = self.get_snake();
 
         if snake.len() == 0 {
@@ -54,7 +56,7 @@ pub trait Snake {
         let snake_direction = self.snake_get_direction().clone();
         let (snake_head_x, snake_head_y) =
             self.snake_get_head().ok_or(SnakeError::NoHead)?.as_tuple();
-        let snake = self.get_snake();
+        let snake = self.get_snake_mut();
 
         let new_head_location = match snake_direction {
             SnakeDirection::Right if snake_head_x < max_x - 1 => {
@@ -82,7 +84,7 @@ pub trait Snake {
     }
 
     fn snake_remove_tail(&mut self) {
-        let snake = self.get_snake();
+        let snake = self.get_snake_mut();
 
         if snake.len() > 0 {
             snake.remove(0);

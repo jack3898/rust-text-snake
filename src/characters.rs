@@ -2,8 +2,10 @@
 pub enum Characters {
     SnakeHead,
     SnakeBody,
+    SnakeBodySuper,
     Grass,
     Apple,
+    Supersnake,
 }
 
 impl Characters {
@@ -11,8 +13,10 @@ impl Characters {
         match self {
             Characters::SnakeHead => '👀',
             Characters::SnakeBody => '🟩',
+            Characters::SnakeBodySuper => '🟦',
             Characters::Grass => '➕',
             Characters::Apple => '🍎',
+            Characters::Supersnake => '🐍',
         }
     }
 }
