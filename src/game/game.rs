@@ -28,12 +28,12 @@ impl Game {
         Self {
             entity_manager: EntityManager::new(),
             snake: vec![Coordinate::new(0, 0)],
+            score: 0,
             playfield_x: playfield_x,
             playfield_y: playfield_y,
             current_direction: SnakeDirection::Right,
             next_direction: SnakeDirection::Right,
-            state: GameState::Playing,
-            score: 0,
+            state: GameState::Intro,
             current_powerup: PowerupType::None,
         }
     }
@@ -41,34 +41,24 @@ impl Game {
     pub fn next(&mut self) -> &GameState {
         match self.state {
             GameState::Playing => {
-                self.next_playing();
+                self.process_next_game_tick();
                 self.get_state()
             }
             GameState::Paused => self.get_state(),
             GameState::GameOver { .. } => self.get_state(),
+            GameState::Intro => self.get_state(),
         }
     }
 
-    fn next_playing(&mut self) -> &GameState {
+    fn process_next_game_tick(&mut self) -> &GameState {
         self.current_direction = self.next_direction;
-
-        match self.current_powerup {
-            PowerupType::Supersnake { ref mut duration } => {
-                *duration -= 1;
-
-                if *duration == 0 {
-                    self.current_powerup = PowerupType::None;
-                }
-            }
-            PowerupType::None => {}
-        }
 
         match self.snake_add_head(self.playfield_x, self.playfield_y) {
             Ok(_) => {}
             Err(error) => {
                 self.state = GameState::GameOver {
                     score: self.score,
-                    message: format!("{} press 'r' to restart.", error),
+                    message: format!("{} press [R] to go back to the main menu.", error),
                 };
 
                 return &self.state;
@@ -80,21 +70,20 @@ impl Game {
         {
             self.state = GameState::GameOver {
                 score: self.score,
-                message: "You ate yourself! Press 'r' to restart.".to_string(),
+                message: "You ate yourself! Press [R] to restart.".to_string(),
             };
 
             return &self.state;
         }
 
+        self.process_active_powerup();
         self.handle_eat_entity();
         self.generate_entities();
-
-        self.state = GameState::Playing;
 
         &self.state
     }
 
-    pub fn get_apple(&self) -> Option<&EntityType> {
+    fn get_apple(&self) -> Option<&EntityType> {
         self.entity_manager
             .entities
             .iter()
@@ -105,10 +94,10 @@ impl Game {
     }
 
     /// Identify if the snake is on a powerup and award it to the player on a match
-    /// Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
     fn handle_eat_entity(&mut self) {
         match self.snake_on_entity() {
             Some(EntityType::Supersnake { coordinates, .. }) => {
+                // Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
                 self.entity_manager.remove_entity(&coordinates.unwrap());
                 self.current_powerup = PowerupType::Supersnake { duration: 100 };
             }
@@ -126,7 +115,7 @@ impl Game {
     fn generate_entities(&mut self) {
         let mut new_entities = vec![];
 
-        if self.score % 20 == 0 && self.score >= 20 {
+        if self.score % 20 == 0 && self.score > 0 {
             self.add_entity(
                 |coords| {
                     new_entities.push(EntityType::new_supersnake(coords));
@@ -154,6 +143,27 @@ impl Game {
         }
     }
 
+    // If there are any active powerups, process them and remove them if they have expired.
+    fn process_active_powerup(&mut self) {
+        match self.current_powerup {
+            PowerupType::Supersnake { ref mut duration } => {
+                *duration -= 1;
+
+                if *duration == 0 {
+                    self.current_powerup = PowerupType::None;
+                }
+            }
+            PowerupType::None => {}
+        }
+    }
+
+    /// Get the entity that the snake is currently on
+    fn snake_on_entity(&self) -> Option<&EntityType> {
+        let snake_head_coords = self.snake_get_head().unwrap();
+
+        self.entity_manager.get_entity(*snake_head_coords)
+    }
+
     pub fn get_current_powerup(&self) -> &PowerupType {
         &self.current_powerup
     }
@@ -176,13 +186,6 @@ impl Game {
 
     pub fn resume(&mut self) {
         self.state = GameState::Playing;
-    }
-
-    /// Get the entity that the snake is currently on
-    fn snake_on_entity(&self) -> Option<&EntityType> {
-        let snake_head_coords = self.snake_get_head().unwrap();
-
-        self.entity_manager.get_entity(*snake_head_coords)
     }
 }
 

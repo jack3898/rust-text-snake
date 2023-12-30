@@ -68,7 +68,7 @@ async fn main() {
                         canvas.add_row(score_render);
 
                         let speed_display: Vec<char> =
-                            format!("Speed: {}", (10000 / speed) - 66).chars().collect();
+                            format!("Tick speed (ms): {}", speed).chars().collect();
                         canvas.add_row(speed_display);
 
                         let powerup_display: Vec<char> = format!(
@@ -112,11 +112,33 @@ async fn main() {
                             };
                         }
 
-                        speed = if speed > 60 {
-                            FRAME_TIME_MILLI - score as u64
-                        } else {
-                            speed
+                        if speed > 60 {
+                            speed = FRAME_TIME_MILLI - score as u64
                         };
+
+                        canvas
+                    }
+                    GameState::Intro => {
+                        let mut canvas = Canvas::new();
+                        let snake_display = format!(
+                            "{}{}{}",
+                            Characters::SnakeBody.value(),
+                            Characters::SnakeBody.value(),
+                            Characters::SnakeHead.value()
+                        );
+
+                        let messages = vec![
+                            "Welcome to Snake!",
+                            snake_display.as_str(),
+                            "Press [SPACE] to start.",
+                            "Use the arrow keys to move.",
+                            "Press [ESC] to pause and [R] to resume.",
+                        ];
+
+                        for message in messages {
+                            let message: Vec<char> = message.chars().collect();
+                            canvas.add_row(message);
+                        }
 
                         canvas
                     }
@@ -134,7 +156,7 @@ async fn main() {
                     GameState::Paused => {
                         let mut canvas = Canvas::new();
 
-                        let message: Vec<char> = "Paused. Press 'r' to resume.".chars().collect();
+                        let message: Vec<char> = "Paused. Press [R] to resume.".chars().collect();
                         canvas.add_row(message);
 
                         canvas
@@ -185,6 +207,13 @@ async fn main() {
                             _ => (),
                         }
                     }
+                    GameState::Intro => match key_event.code {
+                        KeyCode::Char(' ') => {
+                            game.start_over();
+                            game.resume();
+                        }
+                        _ => (),
+                    },
                     GameState::GameOver { .. } => match key_event.code {
                         KeyCode::Char('r') => {
                             game.start_over();
