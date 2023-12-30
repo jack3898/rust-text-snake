@@ -1,5 +1,3 @@
-use rand::Rng;
-
 use crate::coordinate::Coordinate;
 
 pub trait Apple {
@@ -19,12 +17,9 @@ pub trait Apple {
         }
 
         loop {
-            let new_apple = Coordinate::new(
-                rand::thread_rng().gen_range(0..max_x),
-                rand::thread_rng().gen_range(0..max_y),
-            );
+            let new_apple = Coordinate::new_random(max_x, max_y);
 
-            if !self.get_apple_no_go_zones().contains(&new_apple) {
+            if !new_apple.intersects_multiple(self.get_apple_no_go_zones()) {
                 self.set_apple(new_apple);
 
                 break;

@@ -104,7 +104,7 @@ impl Game<'_> {
             self.score += 1;
         } else {
             if self.get_apple().is_none() {
-                self.set_apple(Coordinate::new_random(self.playfield_x, self.playfield_y));
+                self.add_apple(self.playfield_x, self.playfield_y);
             }
         }
 

@@ -103,7 +103,7 @@ async fn main() {
                             canvas.set_coord(&supersnake, Characters::Supersnake.value());
                         };
 
-                        speed = if speed > 30 {
+                        speed = if speed > 60 {
                             FRAME_TIME_MILLI - score as u64
                         } else {
                             speed
