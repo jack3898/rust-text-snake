@@ -1,6 +1,6 @@
 use rand::Rng;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Hash, Eq)]
 pub struct Coordinate {
     pub x: usize,
     pub y: usize,

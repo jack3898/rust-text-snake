@@ -25,4 +25,11 @@ impl EntityType {
             emoji: Characters::Supersnake.value(),
         }
     }
+
+    pub fn get_coordinates(&self) -> Option<&Coordinate> {
+        match self {
+            Self::Apple { coordinates, .. } => coordinates.as_ref(),
+            Self::Supersnake { coordinates, .. } => coordinates.as_ref(),
+        }
+    }
 }

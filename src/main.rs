@@ -13,12 +13,14 @@ use canvas::Canvas;
 use characters::Characters;
 use crossterm::event::{read, Event, KeyCode};
 use game::{
-    apple::Apple,
+    entity_type::EntityType,
     game::Game,
     game_state::GameState,
     powerup::PowerupType,
-    snake::{Snake, SnakeDirection},
-    supersnake::Supersnake,
+    traits::{
+        entity::Entity,
+        snake::{Snake, SnakeDirection},
+    },
 };
 use renderer::Renderer;
 use tokio::sync::mpsc;
@@ -57,8 +59,6 @@ async fn main() {
                     GameState::Playing => {
                         let mut canvas = Canvas::new();
                         let score = game.get_score();
-                        let apple = game.get_apple();
-                        let supersnake = game.get_supersnake();
                         let snake_body = game.snake_get_body();
                         let snake_head = game.snake_get_head().unwrap();
 
@@ -73,7 +73,7 @@ async fn main() {
 
                         let powerup_display: Vec<char> = format!(
                             "Powerup ticks: {}",
-                            match game.get_powerup() {
+                            match game.get_current_powerup() {
                                 PowerupType::Supersnake { duration } => duration.to_string(),
                                 PowerupType::None => "No powerup active".to_string(),
                             }
@@ -84,7 +84,7 @@ async fn main() {
                         canvas.add_row(powerup_display);
 
                         for coordinate in snake_body {
-                            match game.get_powerup() {
+                            match game.get_current_powerup() {
                                 PowerupType::Supersnake { .. } => canvas
                                     .set_coord(&coordinate, Characters::SnakeBodySuper.value()),
                                 PowerupType::None => {
@@ -95,13 +95,22 @@ async fn main() {
 
                         canvas.set_coord(&snake_head, Characters::SnakeHead.value());
 
-                        if let Some(apple) = apple {
-                            canvas.set_coord(&apple, Characters::Apple.value());
-                        };
-
-                        if let Some(supersnake) = supersnake {
-                            canvas.set_coord(&supersnake, Characters::Supersnake.value());
-                        };
+                        for entity in game.get_all_entities() {
+                            match entity {
+                                EntityType::Supersnake { .. } => {
+                                    canvas.set_coord(
+                                        entity.get_coordinates().unwrap(),
+                                        Characters::Supersnake.value(),
+                                    );
+                                }
+                                EntityType::Apple { .. } => {
+                                    canvas.set_coord(
+                                        entity.get_coordinates().unwrap(),
+                                        Characters::Apple.value(),
+                                    );
+                                }
+                            };
+                        }
 
                         speed = if speed > 60 {
                             FRAME_TIME_MILLI - score as u64

@@ -1,25 +1,27 @@
 use std::collections::HashMap;
 
-pub struct EntityManager<'a, E> {
-    pub entities: HashMap<&'a str, E>,
+use crate::coordinate::Coordinate;
+
+pub struct EntityManager<E> {
+    pub entities: HashMap<Coordinate, E>,
 }
 
-impl<'a, E> EntityManager<'a, E> {
+impl<'a, E> EntityManager<E> {
     pub fn new() -> Self {
         let entities = HashMap::new();
 
         Self { entities }
     }
 
-    pub fn get_entity(&self, entity_type: &str) -> Option<&E> {
-        self.entities.get(entity_type)
+    pub fn get_entity(&self, coordinate: Coordinate) -> Option<&E> {
+        self.entities.get(&coordinate)
     }
 
-    pub fn add_entity(&mut self, name: &'a str, entity_type: E) {
-        self.entities.insert(name, entity_type);
+    pub fn add_entity(&mut self, coordinates: &Coordinate, entity_type: E) {
+        self.entities.insert(coordinates.clone(), entity_type);
     }
 
-    pub fn remove_entity(&mut self, name: &str) {
-        self.entities.remove(name);
+    pub fn remove_entity(&mut self, coordinates: &Coordinate) {
+        self.entities.remove(coordinates);
     }
 }

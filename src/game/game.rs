@@ -1,17 +1,18 @@
 use crate::coordinate::Coordinate;
 
 use super::{
-    apple::Apple,
     entity_manager::EntityManager,
     entity_type::EntityType,
     game_state::GameState,
     powerup::PowerupType,
-    snake::{Snake, SnakeDirection},
-    supersnake::Supersnake,
+    traits::{
+        entity::Entity,
+        snake::{Snake, SnakeDirection},
+    },
 };
 
-pub struct Game<'a> {
-    entity_manager: EntityManager<'a, EntityType>,
+pub struct Game {
+    entity_manager: EntityManager<EntityType>,
     snake: Vec<Coordinate>,
     score: usize,
     playfield_x: usize,
@@ -22,7 +23,7 @@ pub struct Game<'a> {
     current_powerup: PowerupType,
 }
 
-impl Game<'_> {
+impl Game {
     pub fn new(playfield_x: usize, playfield_y: usize) -> Self {
         Self {
             entity_manager: EntityManager::new(),
@@ -85,59 +86,75 @@ impl Game<'_> {
             return &self.state;
         }
 
-        if self.get_apple().is_some() {
-            self.snake_remove_tail();
-        }
-
-        if &self.score % 20 == 0 && self.score >= 20 {
-            self.add_supersnake(self.playfield_x, self.playfield_y);
-            self.score += 1;
-        }
-
-        if self.snake_eating_supersnake() {
-            self.remove_supersnake();
-            self.current_powerup = PowerupType::Supersnake { duration: 100 };
-        }
-
-        if self.snake_eating_apple() {
-            self.remove_apple();
-            self.score += 1;
-        } else {
-            if self.get_apple().is_none() {
-                self.add_apple(self.playfield_x, self.playfield_y);
-            }
-        }
+        self.handle_eat_entity();
+        self.generate_entities();
 
         self.state = GameState::Playing;
 
         &self.state
     }
 
-    fn snake_eating_apple(&mut self) -> bool {
-        let apple = self.get_apple();
-
-        apple
-            .map(|apple| {
-                self.snake_get_head()
-                    .map(|head| head.intersects(apple))
-                    .unwrap_or(false)
+    pub fn get_apple(&self) -> Option<&EntityType> {
+        self.entity_manager
+            .entities
+            .iter()
+            .find_map(|(_, entity)| match entity {
+                EntityType::Apple { .. } => Some(entity),
+                _ => None,
             })
-            .unwrap_or(false)
     }
 
-    fn snake_eating_supersnake(&mut self) -> bool {
-        let supersnake = self.get_supersnake();
-
-        supersnake
-            .map(|supersnake| {
-                self.snake_get_head()
-                    .map(|head| head.intersects(supersnake))
-                    .unwrap_or(false)
-            })
-            .unwrap_or(false)
+    /// Identify if the snake is on a powerup and award it to the player on a match
+    /// Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
+    fn handle_eat_entity(&mut self) {
+        match self.snake_on_entity() {
+            Some(EntityType::Supersnake { coordinates, .. }) => {
+                self.entity_manager.remove_entity(&coordinates.unwrap());
+                self.current_powerup = PowerupType::Supersnake { duration: 100 };
+            }
+            Some(EntityType::Apple { coordinates, .. }) => {
+                self.entity_manager.remove_entity(&coordinates.unwrap());
+                self.score += 1;
+            }
+            None => {
+                self.snake_remove_tail();
+            }
+        };
     }
 
-    pub fn get_powerup(&self) -> &PowerupType {
+    /// Generate new powerups and apples under certain conditions
+    fn generate_entities(&mut self) {
+        let mut new_entities = vec![];
+
+        if self.score % 20 == 0 && self.score >= 20 {
+            self.add_entity(
+                |coords| {
+                    new_entities.push(EntityType::new_supersnake(coords));
+                },
+                self.playfield_x,
+                self.playfield_y,
+            );
+            self.score += 1;
+        };
+
+        if self.get_apple().is_none() {
+            self.add_entity(
+                |coords| {
+                    new_entities.push(EntityType::new_apple(coords));
+                },
+                self.playfield_x,
+                self.playfield_y,
+            );
+        };
+
+        for entity in new_entities {
+            let coordinates = &entity.get_coordinates().unwrap().clone();
+
+            self.entity_manager.add_entity(coordinates, entity);
+        }
+    }
+
+    pub fn get_current_powerup(&self) -> &PowerupType {
         &self.current_powerup
     }
 
@@ -160,9 +177,16 @@ impl Game<'_> {
     pub fn resume(&mut self) {
         self.state = GameState::Playing;
     }
+
+    /// Get the entity that the snake is currently on
+    fn snake_on_entity(&self) -> Option<&EntityType> {
+        let snake_head_coords = self.snake_get_head().unwrap();
+
+        self.entity_manager.get_entity(*snake_head_coords)
+    }
 }
 
-impl Snake for Game<'_> {
+impl Snake for Game {
     fn get_snake(&self) -> &Vec<Coordinate> {
         &self.snake
     }
@@ -180,50 +204,25 @@ impl Snake for Game<'_> {
     }
 }
 
-impl Apple for Game<'_> {
-    fn get_apple(&self) -> Option<&Coordinate> {
+impl Entity for Game {
+    fn get_all_entities(&self) -> Vec<&EntityType> {
         self.entity_manager
-            .get_entity("apple")
-            .map(|apple| match apple {
-                EntityType::Apple { coordinates, .. } => coordinates.as_ref().unwrap(),
-                _ => panic!("Expected apple"),
+            .entities
+            .iter()
+            .filter_map(|(_, entity)| match entity {
+                EntityType::Apple { .. } => Some(entity),
+                EntityType::Supersnake { .. } => Some(entity),
             })
+            .collect()
     }
 
-    fn set_apple(&mut self, coordinates: Coordinate) {
-        self.entity_manager
-            .add_entity("apple", EntityType::new_apple(coordinates));
+    fn remove_entity(&mut self) {
+        let snake_head_coords = self.snake_get_head().unwrap().clone();
+
+        self.entity_manager.remove_entity(&snake_head_coords);
     }
 
-    fn remove_apple(&mut self) {
-        self.entity_manager.remove_entity("apple");
-    }
-
-    fn get_apple_no_go_zones(&self) -> &Vec<Coordinate> {
-        &self.snake
-    }
-}
-
-impl Supersnake for Game<'_> {
-    fn get_supersnake(&self) -> Option<&Coordinate> {
-        self.entity_manager
-            .get_entity("supersnake")
-            .map(|supersnake| match supersnake {
-                EntityType::Supersnake { coordinates, .. } => coordinates.as_ref().unwrap(),
-                _ => panic!("Expected supersnake"),
-            })
-    }
-
-    fn set_supersnake(&mut self, coordinates: Coordinate) {
-        self.entity_manager
-            .add_entity("supersnake", EntityType::new_supersnake(coordinates));
-    }
-
-    fn remove_supersnake(&mut self) {
-        self.entity_manager.remove_entity("supersnake");
-    }
-
-    fn get_supersnake_no_go_zones(&self) -> &Vec<Coordinate> {
+    fn get_entity_no_go_zones(&self) -> &Vec<Coordinate> {
         &self.snake
     }
 }
