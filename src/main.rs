@@ -133,6 +133,7 @@ async fn main() {
                             "Press [SPACE] to start.",
                             "Use the arrow keys to move.",
                             "Press [ESC] to pause and [R] to resume.",
+                            "You can quit at any time by pressing [ESC] in this screen.",
                         ];
 
                         for message in messages {
@@ -211,6 +212,10 @@ async fn main() {
                         KeyCode::Char(' ') => {
                             game.start_over();
                             game.resume();
+                        }
+                        KeyCode::Esc => {
+                            println!("Thanks for playing!");
+                            std::process::exit(0);
                         }
                         _ => (),
                     },
