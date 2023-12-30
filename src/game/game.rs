@@ -65,8 +65,8 @@ impl Game {
             }
         }
 
-        if self.snake_eating_itself()
-            && !matches!(self.current_powerup, PowerupType::Supersnake { .. })
+        if !matches!(self.current_powerup, PowerupType::Supersnake { .. })
+            && self.snake_eating_itself()
         {
             self.state = GameState::GameOver {
                 score: self.score,
@@ -159,7 +159,7 @@ impl Game {
 
     /// Get the entity that the snake is currently on
     fn snake_on_entity(&self) -> Option<&EntityType> {
-        let snake_head_coords = self.snake_get_head().unwrap();
+        let snake_head_coords = self.snake_get_head().expect("Snake has no head!");
 
         self.entity_manager.get_entity(*snake_head_coords)
     }

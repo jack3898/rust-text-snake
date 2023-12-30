@@ -3,6 +3,7 @@ use crate::{coordinate::Coordinate, game::entity_type::EntityType};
 pub trait Entity {
     fn get_all_entities(&self) -> Vec<&EntityType>;
 
+    /// Returns a vector of coordinates that entities cannot spawn on, for example, the snake
     fn get_entity_no_go_zones(&self) -> &Vec<Coordinate>;
 
     fn remove_entity(&mut self);

@@ -28,7 +28,7 @@ impl Coordinate {
     }
 
     /// Returns true if the coordinate intersects with any of the coordinates in the vector
-    pub fn intersects_multiple(&self, others: &Vec<Coordinate>) -> bool {
+    pub fn intersects_multiple(&self, others: &[Coordinate]) -> bool {
         for other in others {
             if self.intersects(other) {
                 return true;
