@@ -26,7 +26,7 @@ use renderer::Renderer;
 use tokio::sync::mpsc;
 
 const SIZE: usize = 21;
-const FRAME_TIME_MILLI: u64 = 250;
+const FRAME_TIME_MILLI: u64 = 200;
 
 #[tokio::main]
 async fn main() {
@@ -75,6 +75,7 @@ async fn main() {
                             "Powerup ticks: {}",
                             match game.get_current_powerup() {
                                 PowerupType::Supersnake { duration } => duration.to_string(),
+                                PowerupType::Slowdown { duration } => duration.to_string(),
                                 PowerupType::None => "No powerup active".to_string(),
                             }
                         )
@@ -88,7 +89,13 @@ async fn main() {
                                 EntityType::SupersnakePwrup { .. } => {
                                     canvas.set_coord(
                                         entity.get_coordinates().unwrap(),
-                                        Characters::Supersnake.value(),
+                                        Characters::SupersnakePwrup.value(),
+                                    );
+                                }
+                                EntityType::SlowdownPwrup { .. } => {
+                                    canvas.set_coord(
+                                        entity.get_coordinates().unwrap(),
+                                        Characters::SlowdownPwrup.value(),
                                     );
                                 }
                                 EntityType::Apple { .. } => {
@@ -110,6 +117,9 @@ async fn main() {
                             match game.get_current_powerup() {
                                 PowerupType::Supersnake { .. } => canvas
                                     .set_coord(&coordinate, Characters::SnakeBodySuper.value()),
+                                PowerupType::Slowdown { .. } => {
+                                    canvas.set_coord(&coordinate, Characters::SnakeBodySlow.value())
+                                }
                                 PowerupType::None => {
                                     canvas.set_coord(&coordinate, Characters::SnakeBody.value())
                                 }
@@ -118,7 +128,9 @@ async fn main() {
 
                         canvas.set_coord(&snake_head, Characters::SnakeHead.value());
 
-                        if speed > 60 {
+                        if matches!(game.get_current_powerup(), PowerupType::Slowdown { .. }) {
+                            speed = FRAME_TIME_MILLI + 50;
+                        } else if speed > 60 {
                             speed = FRAME_TIME_MILLI - (score * 2) as u64
                         };
 
@@ -132,12 +144,27 @@ async fn main() {
                             Characters::SnakeBody.value(),
                             Characters::SnakeHead.value()
                         );
+                        let apple_guide = format!("{} - Eat to grow.", Characters::Apple.value());
+
+                        let supersnake_guide = format!(
+                            "{} - Eat to become invincible to obstacles.",
+                            Characters::SupersnakePwrup.value()
+                        );
+                        let slowdown_guide = format!("{} - Eat to slow down time, but if you spam-press the arrow key they corresponds to your current direction time speeds up!", Characters::SlowdownPwrup.value());
+                        let obstacle_guide =
+                            format!("{} - Avoid or game over!", Characters::Obstacle.value());
 
                         let messages = vec![
                             "Welcome to Snake!",
                             snake_display.as_str(),
-                            "Press [SPACE] to start.",
                             "Use the arrow keys to move.",
+                            "",
+                            apple_guide.as_str(),
+                            supersnake_guide.as_str(),
+                            slowdown_guide.as_str(),
+                            obstacle_guide.as_str(),
+                            "",
+                            "Press [SPACE] to start.",
                             "You can quit at any time by pressing [ESC] in this screen.",
                         ];
 
@@ -197,7 +224,6 @@ async fn main() {
                             KeyCode::Left => game.snake_set_direction(SnakeDirection::Left),
                             KeyCode::Down => game.snake_set_direction(SnakeDirection::Down),
                             KeyCode::Right => game.snake_set_direction(SnakeDirection::Right),
-
                             _ => (),
                         }
                     }

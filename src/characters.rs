@@ -6,7 +6,9 @@ pub enum Characters {
     Obstacle,
     Grass,
     Apple,
-    Supersnake,
+    SupersnakePwrup,
+    SnakeBodySlow,
+    SlowdownPwrup,
 }
 
 impl Characters {
@@ -15,10 +17,12 @@ impl Characters {
             Characters::SnakeHead => '👀',
             Characters::SnakeBody => '🟩',
             Characters::SnakeBodySuper => '🟦',
+            Characters::SnakeBodySlow => '🟨',
             Characters::Obstacle => '🟥',
             Characters::Grass => '➕',
             Characters::Apple => '🍏',
-            Characters::Supersnake => '🐍',
+            Characters::SupersnakePwrup => '🐍',
+            Characters::SlowdownPwrup => '🐌',
         }
     }
 }

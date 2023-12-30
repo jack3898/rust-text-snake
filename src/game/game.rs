@@ -114,6 +114,10 @@ impl Game {
                     message: "You hit an obstacle! Press [R] to restart.".to_string(),
                 };
             }
+            Some(EntityType::SlowdownPwrup { coordinates, .. }) => {
+                self.entities.remove(&coordinates.unwrap());
+                self.current_powerup = PowerupType::Slowdown { duration: 150 };
+            }
             _ => {
                 self.snake_remove_tail();
             }
@@ -124,10 +128,21 @@ impl Game {
     fn generate_entities(&mut self) {
         let mut new_entities = vec![];
 
-        if self.score % 20 == 0 && self.score > 0 {
+        if self.score % 25 == 0 && self.score > 0 {
             self.add_entity(
                 |coords| {
                     new_entities.push(EntityType::new_supersnake(coords));
+                },
+                self.playfield_x,
+                self.playfield_y,
+            );
+            self.score += 1;
+        };
+
+        if self.score % 15 == 0 && self.score > 0 {
+            self.add_entity(
+                |coords| {
+                    new_entities.push(EntityType::new_slowdown(coords));
                 },
                 self.playfield_x,
                 self.playfield_y,
@@ -186,13 +201,15 @@ impl Game {
     // If there are any active powerups, process them and remove them if they have expired.
     fn process_active_powerup(&mut self) {
         match self.current_powerup {
-            PowerupType::Supersnake { ref mut duration } => {
+            PowerupType::Supersnake { ref mut duration }
+            | PowerupType::Slowdown { ref mut duration } => {
                 *duration -= 1;
 
                 if *duration == 0 {
                     self.current_powerup = PowerupType::None;
                 }
             }
+
             PowerupType::None => {}
         }
     }
@@ -240,6 +257,13 @@ impl Snake for Game {
 
     fn snake_set_direction(&mut self, direction: SnakeDirection) {
         self.next_direction.push(direction);
+
+        if matches!(self.current_powerup, PowerupType::Slowdown { .. }) {
+            while self.next_direction.len() > 1 && self.next_direction[0] == self.next_direction[1]
+            {
+                self.next();
+            }
+        }
     }
 }
 
@@ -248,9 +272,10 @@ impl Entity for Game {
         self.entities
             .iter()
             .filter_map(|(_, entity)| match entity {
-                EntityType::Apple { .. } => Some(entity),
-                EntityType::SupersnakePwrup { .. } => Some(entity),
-                EntityType::Obstacle { .. } => Some(entity),
+                EntityType::Apple { .. }
+                | EntityType::SupersnakePwrup { .. }
+                | EntityType::Obstacle { .. }
+                | EntityType::SlowdownPwrup { .. } => Some(entity),
             })
             .collect()
     }
