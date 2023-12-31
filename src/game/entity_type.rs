@@ -1,4 +1,6 @@
-use crate::{characters::Characters, coordinates::Coordinates};
+use crate::coordinates::Coordinates;
+
+use super::Characters;
 
 pub enum EntityType {
     Apple {

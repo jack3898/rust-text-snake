@@ -48,6 +48,12 @@ impl Canvas {
         })
     }
 
+    pub fn add_row_string<S: AsRef<str>>(&mut self, row: S) {
+        let row_vec = row.as_ref().chars().collect::<Vec<char>>();
+
+        self.add_row(row_vec);
+    }
+
     pub fn add_row(&mut self, row: Vec<char>) {
         self.matrix.push(row);
         self.y_res += 1;

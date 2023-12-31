@@ -7,21 +7,21 @@ use super::{
     game_state::GameState,
     powerup::PowerupType,
     traits::{
-        entity::Entity,
-        snake::{Snake, SnakeDirection},
+        Entity, {Snake, SnakeDirection},
     },
 };
 
 pub struct Game {
     entities: HashMap<Coordinates, EntityType>,
     snake: Vec<Coordinates>,
-    score: usize,
+    score: u64,
     playfield_x: usize,
     playfield_y: usize,
     current_direction: SnakeDirection, // Only updates next game tick
     next_direction: Vec<SnakeDirection>, // Queues up for next game tick
     state: GameState,
     current_powerup: PowerupType,
+    base_tick_speed: u64,
 }
 
 impl Game {
@@ -36,6 +36,7 @@ impl Game {
             next_direction: Vec::from([SnakeDirection::Right]),
             state: GameState::Intro,
             current_powerup: PowerupType::None,
+            base_tick_speed: 200,
         }
     }
 
@@ -103,7 +104,7 @@ impl Game {
             Some(EntityType::SupersnakePwrup { coordinates, .. }) => {
                 // Unwrapped because we know the snake has a head that is sitting on a powerup so it should always be Some
                 self.entities.remove(&coordinates.unwrap());
-                self.current_powerup = PowerupType::Supersnake { duration: 100 };
+                self.current_powerup = PowerupType::Supersnake { tick_duration: 100 };
             }
             Some(EntityType::Apple { coordinates, .. }) => {
                 self.entities.remove(&coordinates.unwrap());
@@ -119,7 +120,7 @@ impl Game {
             }
             Some(EntityType::SlowdownPwrup { coordinates, .. }) => {
                 self.entities.remove(&coordinates.unwrap());
-                self.current_powerup = PowerupType::Slowdown { duration: 150 };
+                self.current_powerup = PowerupType::Slowdown { tick_duration: 150 };
             }
             _ => {
                 self.snake_remove_tail();
@@ -204,8 +205,12 @@ impl Game {
     // If there are any active powerups, process them and remove them if they have expired.
     fn process_active_powerup(&mut self) {
         match self.current_powerup {
-            PowerupType::Supersnake { ref mut duration }
-            | PowerupType::Slowdown { ref mut duration } => {
+            PowerupType::Supersnake {
+                tick_duration: ref mut duration,
+            }
+            | PowerupType::Slowdown {
+                tick_duration: ref mut duration,
+            } => {
                 *duration -= 1;
 
                 if *duration == 0 {
@@ -214,6 +219,13 @@ impl Game {
             }
 
             PowerupType::None => {}
+        }
+    }
+
+    pub fn get_tick_speed(&self) -> u64 {
+        match self.current_powerup {
+            PowerupType::Slowdown { .. } => self.base_tick_speed + 50,
+            _ => self.base_tick_speed - self.score,
         }
     }
 
@@ -228,7 +240,7 @@ impl Game {
         &self.current_powerup
     }
 
-    pub fn get_score(&self) -> usize {
+    pub fn get_score(&self) -> u64 {
         self.score
     }
 

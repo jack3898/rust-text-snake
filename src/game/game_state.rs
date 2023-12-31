@@ -1,5 +1,5 @@
 pub enum GameState {
     Intro,
     Playing,
-    GameOver { score: usize, message: String },
+    GameOver { score: u64, message: String },
 }
